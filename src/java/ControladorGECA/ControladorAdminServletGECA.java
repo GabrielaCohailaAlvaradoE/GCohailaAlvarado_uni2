@@ -10,7 +10,12 @@ import ModeloGECA.clsReclamoGECA;
 import ModeloGECA.clsSeguimientoGECA;
 import ModeloGECA.clsUsuarioGeca;
 import java.io.IOException;
+import java.text.Normalizer;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -25,6 +30,15 @@ public class ControladorAdminServletGECA extends HttpServlet {
     private static final String PANEL_JSP = "/vistaGECA/panelAdminGECA.jsp";
     private static final String DETALLE_JSP = "/vistaGECA/detalleReclamoGECA.jsp";
     private static final String[] ESTADOS_VALIDOS = {"Pendiente", "En atención", "Resuelto"};
+    private static final Map<String, String> ESTADOS_VALIDOS_NORMALIZADOS;
+
+    static {
+        Map<String, String> estados = new HashMap<>();
+        for (String estado : ESTADOS_VALIDOS) {
+            estados.put(normalizarClaveEstadoGECA(estado), estado);
+        }
+        ESTADOS_VALIDOS_NORMALIZADOS = Collections.unmodifiableMap(estados);
+    }
 
     private final CRUDReclamoGECA reclamoDAO = new clsReclamoDAOImplGECA();
     private final CRUDSeguimientoGECA seguimientoDAO = new clsSeguimientoDAOImplGECA();
@@ -137,7 +151,7 @@ public class ControladorAdminServletGECA extends HttpServlet {
 
         clsReclamoGECA reclamo = reclamoOpt.get();
         String estadoActual = reclamo.getEstadoGeca();
-        boolean cambioEstado = estadoActual != null && !estadoActual.equalsIgnoreCase(estadoCanonico);
+        boolean cambioEstado = !sonEstadosEquivalentesGECA(estadoActual, estadoCanonico);
 
         if (!cambioEstado) {
             if (hayObservaciones) {
@@ -177,13 +191,19 @@ public class ControladorAdminServletGECA extends HttpServlet {
         String accion = request.getParameter("accionReclamoGeca");
         String observaciones = request.getParameter("observacionesGeca");
         String estado = request.getParameter("estadoSeguimientoGeca");
+        String estadoCanonico = normalizarEstadoGECA(estado);
+        if (estadoCanonico == null && estado != null && !estado.trim().isEmpty()) {
+            request.getSession().setAttribute("mensajeErrorGECA", "El estado seleccionado no es válido.");
+            response.sendRedirect(request.getContextPath() + "/adminGECA?accion=detalle&idReclamoGeca=" + idReclamo);
+            return;
+        }
 
         clsSeguimientoGECA seguimiento = new clsSeguimientoGECA();
         seguimiento.setIdReclamoGeca(idReclamo);
         seguimiento.setIdUsuarioGeca(administrador.getIdUsuarioGeca());
         seguimiento.setAccionGeca(accion);
         seguimiento.setObservacionesGeca(observaciones);
-        seguimiento.setNuevoEstadoGeca(estado);
+        seguimiento.setNuevoEstadoGeca(estadoCanonico);
 
         if (seguimientoDAO.registrarSeguimientoGECA(seguimiento)) {
             request.getSession().setAttribute("mensajeExitoGECA", "Seguimiento registrado correctamente.");
@@ -212,15 +232,29 @@ public class ControladorAdminServletGECA extends HttpServlet {
         if (estado == null) {
             return null;
         }
-        String candidato = estado.trim();
+        String candidato = estado.strip();
         if (candidato.isEmpty()) {
             return null;
         }
-        for (String valido : ESTADOS_VALIDOS) {
-            if (valido.equalsIgnoreCase(candidato)) {
-                return valido;
-            }
+        return ESTADOS_VALIDOS_NORMALIZADOS.get(normalizarClaveEstadoGECA(candidato));
+    }
+
+    private static boolean sonEstadosEquivalentesGECA(String estadoA, String estadoB) {
+        String normalizadoA = estadoA == null ? "" : normalizarClaveEstadoGECA(estadoA);
+        String normalizadoB = estadoB == null ? "" : normalizarClaveEstadoGECA(estadoB);
+        return normalizadoA.equals(normalizadoB);
+    }
+
+    private static String normalizarClaveEstadoGECA(String texto) {
+        if (texto == null) {
+            return "";
         }
-        return null;
+        String textoLimpio = texto.strip();
+        if (textoLimpio.isEmpty()) {
+            return "";
+        }
+        String textoNormalizado = Normalizer.normalize(textoLimpio, Normalizer.Form.NFD);
+        String sinDiacriticos = textoNormalizado.replaceAll("\\p{M}+", "");
+        return sinDiacriticos.replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 }
