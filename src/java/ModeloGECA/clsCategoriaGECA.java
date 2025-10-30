@@ -1,13 +1,43 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package ModeloGECA;
 
-/**
- *
- * @author HP
- */
-public class clsCategoriaGECA {
-    
+import java.io.Serializable;
+
+public class clsCategoriaGECA implements Serializable {
+
+    private int idCategoriaGeca;
+    private String nombreCategoriaGeca;
+    private String descripcionCategoriaGeca;
+
+    public clsCategoriaGECA() {
+    }
+
+    public clsCategoriaGECA(int idCategoriaGeca, String nombreCategoriaGeca, String descripcionCategoriaGeca) {
+        this.idCategoriaGeca = idCategoriaGeca;
+        this.nombreCategoriaGeca = nombreCategoriaGeca;
+        this.descripcionCategoriaGeca = descripcionCategoriaGeca;
+    }
+
+    public int getIdCategoriaGeca() {
+        return idCategoriaGeca;
+    }
+
+    public void setIdCategoriaGeca(int idCategoriaGeca) {
+        this.idCategoriaGeca = idCategoriaGeca;
+    }
+
+    public String getNombreCategoriaGeca() {
+        return nombreCategoriaGeca;
+    }
+
+    public void setNombreCategoriaGeca(String nombreCategoriaGeca) {
+        this.nombreCategoriaGeca = nombreCategoriaGeca;
+    }
+
+    public String getDescripcionCategoriaGeca() {
+        return descripcionCategoriaGeca;
+    }
+
+    public void setDescripcionCategoriaGeca(String descripcionCategoriaGeca) {
+        this.descripcionCategoriaGeca = descripcionCategoriaGeca;
+    }
 }
