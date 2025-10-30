@@ -54,26 +54,19 @@ public class ControladorLoginServletGECA extends HttpServlet {
         }
 
         if (!validarCaptcha(session, captchaIngresado)) {
-            prepararRespuestaConError(request, session, email, "Captcha inválido. Intente nuevamente.");
+            prepararRespuestaConError(request, session, email, "Captcha inválido.");
             request.getRequestDispatcher(LOGIN_JSP).forward(request, response);
             return;
         }
 
         Optional<clsUsuarioGeca> usuarioOpt = usuarioDAO.validarAccesoGECA(email, password);
         if (!usuarioOpt.isPresent()) {
-            prepararRespuestaConError(request, session, email, "Credenciales inválidas o usuario inactivo.");
+            prepararRespuestaConError(request, session, email, "Usuario o contraseña incorrecta.");
             request.getRequestDispatcher(LOGIN_JSP).forward(request, response);
             return;
         }
 
         clsUsuarioGeca usuario = usuarioOpt.get();
-        String ipRemota = obtenerIPClienteGECA(request);
-        String ipPermitida = usuario.getIpPermitidaGeca();
-        if (!esIPRemotaPermitida(ipPermitida, ipRemota)) {
-            prepararRespuestaConError(request, session, email, "Acceso denegado desde esta dirección IP: " + ipRemota);
-            request.getRequestDispatcher(LOGIN_JSP).forward(request, response);
-            return;
-        }
 
         session.setAttribute("usuarioGECA", usuario);
         session.setAttribute("rolGECA", usuario.getRolGeca());
@@ -112,74 +105,6 @@ public class ControladorLoginServletGECA extends HttpServlet {
         } catch (NumberFormatException ex) {
             return false;
         }
-    }
-
-    private String obtenerIPClienteGECA(HttpServletRequest request) {
-        String ipDesdeCabecera = obtenerIPDesdeCabecerasProxys(request);
-        if (!ipDesdeCabecera.isEmpty()) {
-            return ipDesdeCabecera;
-        }
-        String remoteAddr = Optional.ofNullable(request.getRemoteAddr()).orElse("");
-        if (remoteAddr.isEmpty()) {
-            return "";
-        }
-        return normalizarLoopback(remoteAddr);
-    }
-
-    private boolean esIPRemotaPermitida(String ipPermitida, String ipRemota) {
-        if (ipPermitida == null || ipPermitida.trim().isEmpty()) {
-            return true;
-        }
-
-        String ipNormalizadaRemota = normalizarIP(ipRemota);
-        if (ipNormalizadaRemota.isEmpty()) {
-            return false;
-        }
-
-        String[] ipPermitidas = ipPermitida.split("[,;\\s]+");
-        for (String ip : ipPermitidas) {
-            String ipNormalizada = normalizarIP(ip);
-            if ("*".equals(ipNormalizada)) {
-                return true;
-            }
-            if (!ipNormalizada.isEmpty() && ipNormalizada.equals(ipNormalizadaRemota)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private String normalizarIP(String ip) {
-        if (ip == null) {
-            return "";
-        }
-        String limpia = ip.trim();
-        if (limpia.isEmpty()) {
-            return "";
-        }
-        limpia = normalizarLoopback(limpia);
-        return limpia.toLowerCase();
-    }
-
-    private String obtenerIPDesdeCabecerasProxys(HttpServletRequest request) {
-        String[] cabeceras = {"X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP", "WL-Proxy-Client-IP"};
-        for (String cabecera : cabeceras) {
-            String valor = request.getHeader(cabecera);
-            if (valor != null && !valor.trim().isEmpty()) {
-                String ip = valor.split(",")[0].trim();
-                if (!ip.isEmpty()) {
-                    return normalizarLoopback(ip);
-                }
-            }
-        }
-        return "";
-    }
-
-    private String normalizarLoopback(String ip) {
-        if ("0:0:0:0:0:0:0:1".equals(ip) || "::1".equals(ip) || "localhost".equalsIgnoreCase(ip)) {
-            return "127.0.0.1";
-        }
-        return ip;
     }
 
     private void redirigirSegunRol(HttpServletResponse response, String contextPath, String rol) throws IOException {
