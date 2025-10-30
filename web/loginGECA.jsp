@@ -40,6 +40,11 @@
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100">Ingresar</button>
                             </form>
+                            <div class="alert alert-info mt-4" role="alert">
+                                <h6 class="alert-heading">Credenciales de prueba</h6>
+                                <p class="mb-1"><strong>Administrador:</strong> admin@geca.com / admin123</p>
+                                <p class="mb-0"><strong>Usuario:</strong> usuario@geca.com / user123</p>
+                            </div>
                         </div>
                         <div class="card-footer text-center text-muted">
                             <small>Su dirección IP actual: ${pageContext.request.remoteAddr}</small>
