@@ -1,5 +1,8 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<c:if test="${empty requestScope.captchaPreguntaGECA and empty sessionScope.captchaPreguntaGECA}">
+    <jsp:forward page="/loginGECA" />
+</c:if>
 <!DOCTYPE html>
 <html lang="es">
     <head>
@@ -64,7 +67,10 @@
                                 <div class="mb-4">
                                     <label class="form-label">Captcha de verificación</label>
                                     <div class="input-group">
-                                        <span class="input-group-text">${captchaPreguntaGECA}</span>
+                                        <c:set var="captchaTextoGECA" value="${empty captchaPreguntaGECA ? sessionScope.captchaPreguntaGECA : captchaPreguntaGECA}" />
+                                        <span class="input-group-text">
+                                            <c:out value="${captchaTextoGECA}" default="?" />
+                                        </span>
                                         <input type="number" class="form-control" name="captchaGeca" required placeholder="Resultado">
                                         <div class="invalid-feedback">Resuelva el captcha para continuar.</div>
                                     </div>

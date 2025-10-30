@@ -71,6 +71,7 @@ public class ControladorLoginServletGECA extends HttpServlet {
         session.setAttribute("usuarioGECA", usuario);
         session.setAttribute("rolGECA", usuario.getRolGeca());
         session.removeAttribute("captchaResultadoGECA");
+        session.removeAttribute("captchaPreguntaGECA");
 
         redirigirSegunRol(response, request.getContextPath(), usuario.getRolGeca());
     }
@@ -89,8 +90,10 @@ public class ControladorLoginServletGECA extends HttpServlet {
     private void generarCaptchaGECA(HttpSession session, HttpServletRequest request) {
         int numeroUno = random.nextInt(9) + 1;
         int numeroDos = random.nextInt(9) + 1;
+        String pregunta = numeroUno + " + " + numeroDos;
         session.setAttribute("captchaResultadoGECA", numeroUno + numeroDos);
-        request.setAttribute("captchaPreguntaGECA", numeroUno + " + " + numeroDos);
+        session.setAttribute("captchaPreguntaGECA", pregunta);
+        request.setAttribute("captchaPreguntaGECA", pregunta);
     }
 
     private boolean validarCaptcha(HttpSession session, String captchaIngresado) {

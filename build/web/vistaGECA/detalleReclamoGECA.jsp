@@ -18,6 +18,20 @@
             </c:otherwise>
         </c:choose>
         <div class="container py-4">
+            <c:if test="${not empty sessionScope.mensajeExitoGECA}">
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    ${sessionScope.mensajeExitoGECA}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+                <c:remove var="mensajeExitoGECA" scope="session" />
+            </c:if>
+            <c:if test="${not empty sessionScope.mensajeErrorGECA}">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    ${sessionScope.mensajeErrorGECA}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+                <c:remove var="mensajeErrorGECA" scope="session" />
+            </c:if>
             <div class="row">
                 <div class="col-lg-8">
                     <div class="card mb-4 shadow-sm">
@@ -77,6 +91,7 @@
                                 <form method="post" action="${pageContext.request.contextPath}/adminGECA">
                                     <input type="hidden" name="accion" value="actualizarEstado">
                                     <input type="hidden" name="idReclamoGeca" value="${reclamoDetalleGECA.idReclamoGeca}">
+                                    <input type="hidden" name="estadoActualGeca" value="${reclamoDetalleGECA.estadoGeca}">
                                     <div class="mb-3">
                                         <label class="form-label" for="nuevoEstadoGeca">Nuevo estado</label>
                                         <select class="form-select" id="nuevoEstadoGeca" name="nuevoEstadoGeca" required>

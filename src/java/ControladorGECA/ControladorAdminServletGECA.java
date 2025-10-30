@@ -93,8 +93,26 @@ public class ControladorAdminServletGECA extends HttpServlet {
 
     private void actualizarEstadoGECA(HttpServletRequest request, HttpServletResponse response, clsUsuarioGeca administrador)
             throws IOException {
-        int idReclamo = Integer.parseInt(request.getParameter("idReclamoGeca"));
-        String estadoActual = request.getParameter("estadoActualGeca");
+        String idParam = request.getParameter("idReclamoGeca");
+        if (idParam == null) {
+            request.getSession().setAttribute("mensajeErrorGECA", "No se indicó el reclamo a actualizar.");
+            response.sendRedirect(request.getContextPath() + "/adminGECA");
+            return;
+        }
+        final int idReclamo;
+        try {
+            idReclamo = Integer.parseInt(idParam);
+        } catch (NumberFormatException ex) {
+            request.getSession().setAttribute("mensajeErrorGECA", "El identificador del reclamo no es válido.");
+            response.sendRedirect(request.getContextPath() + "/adminGECA");
+            return;
+        }
+        Optional<clsReclamoGECA> reclamoOpt = reclamoDAO.obtenerReclamoPorIdGECA(idReclamo);
+        if (!reclamoOpt.isPresent()) {
+            request.getSession().setAttribute("mensajeErrorGECA", "El reclamo seleccionado no existe.");
+            response.sendRedirect(request.getContextPath() + "/adminGECA");
+            return;
+        }
         String nuevoEstado = request.getParameter("nuevoEstadoGeca");
         if (nuevoEstado != null) {
             nuevoEstado = nuevoEstado.trim();
@@ -117,17 +135,35 @@ public class ControladorAdminServletGECA extends HttpServlet {
             observacionesLimpias = null;
         }
 
+        clsReclamoGECA reclamo = reclamoOpt.get();
+        String estadoActual = reclamo.getEstadoGeca();
         boolean cambioEstado = estadoActual != null && !estadoActual.equalsIgnoreCase(estadoCanonico);
+
+        if (!cambioEstado) {
+            if (hayObservaciones) {
+                clsSeguimientoGECA seguimiento = new clsSeguimientoGECA();
+                seguimiento.setIdReclamoGeca(idReclamo);
+                seguimiento.setIdUsuarioGeca(administrador.getIdUsuarioGeca());
+                seguimiento.setAccionGeca("Observaciones registradas");
+                seguimiento.setObservacionesGeca(observacionesLimpias);
+                seguimiento.setNuevoEstadoGeca(estadoCanonico);
+                if (seguimientoDAO.registrarSeguimientoGECA(seguimiento)) {
+                    request.getSession().setAttribute("mensajeExitoGECA", "Las observaciones fueron registradas para el reclamo.");
+                } else {
+                    request.getSession().setAttribute("mensajeErrorGECA", "No se pudieron registrar las observaciones del reclamo.");
+                }
+            } else {
+                request.getSession().setAttribute("mensajeExitoGECA", "El reclamo ya se encontraba en el estado \"" + estadoCanonico + "\".");
+            }
+            response.sendRedirect(request.getContextPath() + "/adminGECA?accion=detalle&idReclamoGeca=" + idReclamo);
+            return;
+        }
+
         boolean actualizado = reclamoDAO.actualizarEstadoGECA(idReclamo, estadoCanonico, administrador.getIdUsuarioGeca(), observacionesLimpias);
         if (actualizado) {
-            String mensaje;
-            if (cambioEstado) {
-                mensaje = "Estado del reclamo actualizado a \"" + estadoCanonico + "\" correctamente.";
-            } else if (hayObservaciones) {
-                mensaje = "Las observaciones fueron registradas para el reclamo.";
-            } else {
-                mensaje = "El reclamo ya se encontraba en el estado \"" + estadoCanonico + "\".";
-            }
+            String mensaje = hayObservaciones
+                    ? "Estado del reclamo actualizado a \"" + estadoCanonico + "\" y observaciones registradas correctamente."
+                    : "Estado del reclamo actualizado a \"" + estadoCanonico + "\" correctamente.";
             request.getSession().setAttribute("mensajeExitoGECA", mensaje);
         } else {
             request.getSession().setAttribute("mensajeErrorGECA", "No se pudo actualizar el estado del reclamo.");
