@@ -1,13 +1,25 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package InterfacesGECA;
 
-/**
- *
- * @author HP
- */
-public class CRUDReclamoGECA {
-    
+import ModeloGECA.clsReclamoGECA;
+import ModeloGECA.clsnombreGECA;
+import java.util.List;
+import java.util.Optional;
+
+public interface CRUDReclamoGECA {
+
+    boolean registrarReclamoGECA(clsReclamoGECA reclamo);
+
+    List<clsReclamoGECA> listarReclamosPorUsuarioGECA(int idUsuario);
+
+    List<clsReclamoGECA> listarReclamosPorEstadoGECA(String estado);
+
+    List<clsReclamoGECA> listarTodosGECA();
+
+    Optional<clsReclamoGECA> obtenerReclamoPorIdGECA(int idReclamo);
+
+    boolean actualizarEstadoGECA(int idReclamo, String nuevoEstado, int idUsuario, String observaciones);
+
+    List<clsnombreGECA> obtenerResumenPorEstadoGECA();
+
+    List<clsnombreGECA> obtenerResumenPorCategoriaGECA();
 }

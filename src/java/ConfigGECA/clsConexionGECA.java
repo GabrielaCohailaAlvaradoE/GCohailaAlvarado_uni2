@@ -1,4 +1,3 @@
-
 package ConfigGECA;
 
 import java.sql.Connection;
@@ -6,39 +5,60 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class clsConexionGECA {
-    private static final String URL = "jdbc:mysql://127.0.0.1:3306/nombre";
+    // Corregido: nombre de la base de datos según el script SQL
+    private static final String URL = "jdbc:mysql://localhost:3306/sistema_reclamos_geca";
     private static final String USER = "root"; // Cambiar por tu usuario
     private static final String PASSWORD = ""; // Cambiar por tu contraseña
+    
+    // Bloque estático para registrar el driver
+    static {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            System.out.println("Driver MySQL registrado correctamente GECA");
+        } catch (ClassNotFoundException e) {
+            System.err.println("Error al registrar el driver MySQL GECA: " + e.getMessage());
+            throw new RuntimeException("No se pudo cargar el driver de la base de datos GECA", e);
+        }
+    }
     
     public static Connection getConnectionGECA() {
         Connection connectionGECA = null;
         try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
             connectionGECA = DriverManager.getConnection(URL, USER, PASSWORD);
-            System.out.println("Conexión exitosa a la base de datos");
-        } catch (ClassNotFoundException | SQLException e) {
-            System.out.println("Error en la conexión: " + e.getMessage());
+            System.out.println("Conexión exitosa a la base de datos GECA");
+        } catch (SQLException e) {
+            System.err.println("Error en la conexión GECA: " + e.getMessage());
+            e.printStackTrace();
         }
         return connectionGECA;
     }
     
-    public static void closeConnectionGECA(Connection connection) {
-        if (connection != null) {
+    public static void closeConnectionGECA(Connection connectionGECA) {
+        if (connectionGECA != null) {
             try {
-                connection.close();
-                System.out.println("Conexión cerrada");
+                connectionGECA.close();
+                System.out.println("Conexión cerrada GECA");
             } catch (SQLException e) {
-                System.out.println("Error al cerrar conexión: " + e.getMessage());
+                System.err.println("Error al cerrar conexión GECA: " + e.getMessage());
             }
         }
     }
     
     public static boolean probarConexionGECA() {
-        try (Connection testCon = DriverManager.getConnection(URL, USER, PASSWORD)) {
+        Connection testCon = null;
+        try {
+            testCon = getConnectionGECA();
             return testCon != null && !testCon.isClosed();
         } catch (SQLException e) {
-            System.err.println("Error al probar la conexión: " + e.getMessage());
+            System.err.println("Error al probar la conexión GECA: " + e.getMessage());
             return false;
+        } finally {
+            closeConnectionGECA(testCon);
         }
+    }
+    
+    // Método adicional para obtener información de la conexión
+    public static String getInfoConexionGECA() {
+        return "Base de datos: sistema_reclamos_geca | URL: " + URL + " | Usuario: " + USER;
     }
 }
