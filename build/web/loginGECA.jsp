@@ -4,54 +4,99 @@
 <html lang="es">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Ingreso - Sistema de Reclamos GECA</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+        <style>
+            body {
+                min-height: 100vh;
+                background: linear-gradient(135deg, #1e88e5, #43a047);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem 1rem;
+            }
+            .login-card {
+                border: none;
+                border-radius: 1rem;
+                overflow: hidden;
+            }
+            .login-card .card-header {
+                background: rgba(30, 136, 229, 0.9);
+            }
+            .login-card .form-control:focus {
+                box-shadow: none;
+                border-color: #1e88e5;
+            }
+            .brand-badge {
+                font-size: 3rem;
+                line-height: 1;
+            }
+        </style>
     </head>
-    <body class="bg-light">
-        <div class="container py-5">
+    <body>
+        <div class="container">
             <div class="row justify-content-center">
-                <div class="col-md-6">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-primary text-white text-center">
-                            <h4 class="mb-0">Sistema de Reclamos GECA</h4>
+                <div class="col-lg-5 col-md-7">
+                    <div class="card shadow-lg login-card">
+                        <div class="card-header text-white text-center py-4">
+                            <div class="brand-badge mb-2">GECA</div>
+                            <h4 class="mb-0">Sistema de Reclamos</h4>
+                            <small class="d-block mt-1">Ingrese con sus credenciales corporativas</small>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body p-4 p-md-5">
                             <c:if test="${not empty mensajeErrorGECA}">
                                 <div class="alert alert-danger" role="alert">
                                     ${mensajeErrorGECA}
                                 </div>
                             </c:if>
-                            <form method="post" action="${pageContext.request.contextPath}/loginGECA">
+                            <form method="post" action="${pageContext.request.contextPath}/loginGECA" class="needs-validation" novalidate>
                                 <div class="mb-3">
                                     <label for="emailGeca" class="form-label">Correo electrónico</label>
-                                    <input type="email" class="form-control" id="emailGeca" name="emailGeca" required>
+                                    <input type="email" class="form-control" id="emailGeca" name="emailGeca" value="${empty emailIngresadoGECA ? '' : emailIngresadoGECA}" required>
+                                    <div class="invalid-feedback">Ingrese un correo electrónico válido.</div>
                                 </div>
                                 <div class="mb-3">
                                     <label for="passwordGeca" class="form-label">Contraseña</label>
                                     <input type="password" class="form-control" id="passwordGeca" name="passwordGeca" required>
+                                    <div class="invalid-feedback">Ingrese su contraseña.</div>
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label">Captcha de verificación</label>
                                     <div class="input-group">
                                         <span class="input-group-text">${captchaPreguntaGECA}</span>
                                         <input type="number" class="form-control" name="captchaGeca" required placeholder="Resultado">
+                                        <div class="invalid-feedback">Resuelva el captcha para continuar.</div>
                                     </div>
-                                    <div class="form-text">Ingrese el resultado de la operación para continuar.</div>
+                                    <div class="form-text">Ingrese el resultado de la operación para validar que es una persona.</div>
                                 </div>
-                                <button type="submit" class="btn btn-primary w-100">Ingresar</button>
+                                <button type="submit" class="btn btn-primary w-100">Ingresar al sistema</button>
                             </form>
-                            <div class="alert alert-info mt-4" role="alert">
-                                <h6 class="alert-heading">Credenciales de prueba</h6>
-                                <p class="mb-1"><strong>Administrador:</strong> admin@geca.com / admin123</p>
-                                <p class="mb-0"><strong>Usuario:</strong> usuario@geca.com / user123</p>
-                            </div>
                         </div>
-                        <div class="card-footer text-center text-muted">
-                            <small>Su dirección IP actual: ${pageContext.request.remoteAddr}</small>
+                        <div class="card-footer text-center bg-light py-3">
+                            <small class="text-muted d-block">Su dirección IP actual: ${pageContext.request.remoteAddr}</small>
+                            <div class="text-muted small mt-2">
+                                ¿Necesita ayuda? Contacte al administrador del sistema.
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            (() => {
+                const forms = document.querySelectorAll('.needs-validation');
+                Array.prototype.slice.call(forms).forEach((form) => {
+                    form.addEventListener('submit', (event) => {
+                        if (!form.checkValidity()) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        form.classList.add('was-validated');
+                    }, false);
+                });
+            })();
+        </script>
     </body>
 </html>
