@@ -14,7 +14,6 @@ import java.text.Normalizer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import javax.servlet.ServletException;
@@ -35,7 +34,14 @@ public class ControladorAdminServletGECA extends HttpServlet {
     static {
         Map<String, String> estados = new HashMap<>();
         for (String estado : ESTADOS_VALIDOS) {
-            estados.put(normalizarClaveEstadoGECA(estado), estado);
+            String clavePrincipal = normalizarClaveEstadoGECA(estado);
+            if (!clavePrincipal.isEmpty()) {
+                estados.put(clavePrincipal, estado);
+                String claveSinEspacios = clavePrincipal.replace(" ", "");
+                if (!claveSinEspacios.equals(clavePrincipal)) {
+                    estados.put(claveSinEspacios, estado);
+                }
+            }
         }
         ESTADOS_VALIDOS_NORMALIZADOS = Collections.unmodifiableMap(estados);
     }
@@ -127,10 +133,7 @@ public class ControladorAdminServletGECA extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/adminGECA");
             return;
         }
-        String nuevoEstado = request.getParameter("nuevoEstadoGeca");
-        if (nuevoEstado != null) {
-            nuevoEstado = nuevoEstado.trim();
-        }
+        String nuevoEstado = recortarEspaciosGECA(request.getParameter("nuevoEstadoGeca"));
         if (nuevoEstado == null || nuevoEstado.isEmpty()) {
             request.getSession().setAttribute("mensajeErrorGECA", "Debe seleccionar un estado válido para el reclamo.");
             response.sendRedirect(request.getContextPath() + "/adminGECA?accion=detalle&idReclamoGeca=" + idReclamo);
@@ -142,8 +145,8 @@ public class ControladorAdminServletGECA extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/adminGECA?accion=detalle&idReclamoGeca=" + idReclamo);
             return;
         }
-        String observaciones = request.getParameter("observacionesGeca");
-        String observacionesLimpias = observaciones != null ? observaciones.trim() : null;
+        String observaciones = recortarEspaciosGECA(request.getParameter("observacionesGeca"));
+        String observacionesLimpias = observaciones;
         boolean hayObservaciones = observacionesLimpias != null && !observacionesLimpias.isEmpty();
         if (!hayObservaciones) {
             observacionesLimpias = null;
@@ -188,11 +191,18 @@ public class ControladorAdminServletGECA extends HttpServlet {
     private void registrarSeguimientoGECA(HttpServletRequest request, HttpServletResponse response, clsUsuarioGeca administrador)
             throws IOException {
         int idReclamo = Integer.parseInt(request.getParameter("idReclamoGeca"));
-        String accion = request.getParameter("accionReclamoGeca");
-        String observaciones = request.getParameter("observacionesGeca");
+        String accion = recortarEspaciosGECA(request.getParameter("accionReclamoGeca"));
+        if (accion != null && accion.isEmpty()) {
+            accion = null;
+        }
+        String observaciones = recortarEspaciosGECA(request.getParameter("observacionesGeca"));
+        if (observaciones != null && observaciones.isEmpty()) {
+            observaciones = null;
+        }
         String estado = request.getParameter("estadoSeguimientoGeca");
         String estadoCanonico = normalizarEstadoGECA(estado);
-        if (estadoCanonico == null && estado != null && !estado.trim().isEmpty()) {
+        String estadoRecortado = recortarEspaciosGECA(estado);
+        if (estadoCanonico == null && estadoRecortado != null && !estadoRecortado.isEmpty()) {
             request.getSession().setAttribute("mensajeErrorGECA", "El estado seleccionado no es válido.");
             response.sendRedirect(request.getContextPath() + "/adminGECA?accion=detalle&idReclamoGeca=" + idReclamo);
             return;
@@ -232,29 +242,80 @@ public class ControladorAdminServletGECA extends HttpServlet {
         if (estado == null) {
             return null;
         }
-        String candidato = estado.strip();
-        if (candidato.isEmpty()) {
+        String candidato = recortarEspaciosGECA(estado);
+        if (candidato == null || candidato.isEmpty()) {
             return null;
         }
-        return ESTADOS_VALIDOS_NORMALIZADOS.get(normalizarClaveEstadoGECA(candidato));
+        String clave = normalizarClaveEstadoGECA(candidato);
+        if (clave.isEmpty()) {
+            return null;
+        }
+        String estadoCanonico = ESTADOS_VALIDOS_NORMALIZADOS.get(clave);
+        if (estadoCanonico == null && clave.indexOf(' ') >= 0) {
+            estadoCanonico = ESTADOS_VALIDOS_NORMALIZADOS.get(clave.replace(" ", ""));
+        }
+        return estadoCanonico;
     }
 
     private static boolean sonEstadosEquivalentesGECA(String estadoA, String estadoB) {
-        String normalizadoA = estadoA == null ? "" : normalizarClaveEstadoGECA(estadoA);
-        String normalizadoB = estadoB == null ? "" : normalizarClaveEstadoGECA(estadoB);
-        return normalizadoA.equals(normalizadoB);
+        String normalizadoA = normalizarClaveEstadoGECA(estadoA);
+        String normalizadoB = normalizarClaveEstadoGECA(estadoB);
+        if (normalizadoA.isEmpty() && normalizadoB.isEmpty()) {
+            return true;
+        }
+        if (normalizadoA.equals(normalizadoB)) {
+            return true;
+        }
+        return normalizadoA.replace(" ", "").equals(normalizadoB.replace(" ", ""));
     }
 
     private static String normalizarClaveEstadoGECA(String texto) {
+        String recortado = recortarEspaciosGECA(texto);
+        if (recortado == null || recortado.isEmpty()) {
+            return "";
+        }
+        String textoNormalizado = Normalizer.normalize(recortado, Normalizer.Form.NFD);
+        StringBuilder resultado = new StringBuilder(textoNormalizado.length());
+        boolean hayEspacioPendiente = false;
+        for (int i = 0; i < textoNormalizado.length(); i++) {
+            char c = textoNormalizado.charAt(i);
+            if (Character.getType(c) == Character.NON_SPACING_MARK) {
+                continue;
+            }
+            if (Character.isWhitespace(c)) {
+                hayEspacioPendiente = resultado.length() > 0;
+                continue;
+            }
+            if (Character.isLetterOrDigit(c)) {
+                if (hayEspacioPendiente) {
+                    resultado.append(' ');
+                    hayEspacioPendiente = false;
+                }
+                resultado.append(Character.toLowerCase(c));
+            }
+        }
+        int longitud = resultado.length();
+        while (longitud > 0 && resultado.charAt(longitud - 1) == ' ') {
+            resultado.setLength(--longitud);
+        }
+        return resultado.toString();
+    }
+
+    private static String recortarEspaciosGECA(String texto) {
         if (texto == null) {
+            return null;
+        }
+        int inicio = 0;
+        int fin = texto.length() - 1;
+        while (inicio <= fin && Character.isWhitespace(texto.charAt(inicio))) {
+            inicio++;
+        }
+        while (fin >= inicio && Character.isWhitespace(texto.charAt(fin))) {
+            fin--;
+        }
+        if (inicio > fin) {
             return "";
         }
-        String textoLimpio = texto.strip();
-        if (textoLimpio.isEmpty()) {
-            return "";
-        }
-        String textoNormalizado = Normalizer.normalize(textoLimpio, Normalizer.Form.NFD);
-        String sinDiacriticos = textoNormalizado.replaceAll("\\p{M}+", "");
-        return sinDiacriticos.replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+        return texto.substring(inicio, fin + 1);
     }
 }
