@@ -24,6 +24,7 @@ public class ControladorAdminServletGECA extends HttpServlet {
 
     private static final String PANEL_JSP = "/vistaGECA/panelAdminGECA.jsp";
     private static final String DETALLE_JSP = "/vistaGECA/detalleReclamoGECA.jsp";
+    private static final String[] ESTADOS_VALIDOS = {"Pendiente", "En atención", "Resuelto"};
 
     private final CRUDReclamoGECA reclamoDAO = new clsReclamoDAOImplGECA();
     private final CRUDSeguimientoGECA seguimientoDAO = new clsSeguimientoDAOImplGECA();
@@ -93,15 +94,45 @@ public class ControladorAdminServletGECA extends HttpServlet {
     private void actualizarEstadoGECA(HttpServletRequest request, HttpServletResponse response, clsUsuarioGeca administrador)
             throws IOException {
         int idReclamo = Integer.parseInt(request.getParameter("idReclamoGeca"));
+        String estadoActual = request.getParameter("estadoActualGeca");
         String nuevoEstado = request.getParameter("nuevoEstadoGeca");
+        if (nuevoEstado != null) {
+            nuevoEstado = nuevoEstado.trim();
+        }
+        if (nuevoEstado == null || nuevoEstado.isEmpty()) {
+            request.getSession().setAttribute("mensajeErrorGECA", "Debe seleccionar un estado válido para el reclamo.");
+            response.sendRedirect(request.getContextPath() + "/adminGECA?accion=detalle&idReclamoGeca=" + idReclamo);
+            return;
+        }
+        String estadoCanonico = normalizarEstadoGECA(nuevoEstado);
+        if (estadoCanonico == null) {
+            request.getSession().setAttribute("mensajeErrorGECA", "El estado seleccionado no es válido.");
+            response.sendRedirect(request.getContextPath() + "/adminGECA?accion=detalle&idReclamoGeca=" + idReclamo);
+            return;
+        }
         String observaciones = request.getParameter("observacionesGeca");
-        boolean actualizado = reclamoDAO.actualizarEstadoGECA(idReclamo, nuevoEstado, administrador.getIdUsuarioGeca(), observaciones);
+        String observacionesLimpias = observaciones != null ? observaciones.trim() : null;
+        boolean hayObservaciones = observacionesLimpias != null && !observacionesLimpias.isEmpty();
+        if (!hayObservaciones) {
+            observacionesLimpias = null;
+        }
+
+        boolean cambioEstado = estadoActual != null && !estadoActual.equalsIgnoreCase(estadoCanonico);
+        boolean actualizado = reclamoDAO.actualizarEstadoGECA(idReclamo, estadoCanonico, administrador.getIdUsuarioGeca(), observacionesLimpias);
         if (actualizado) {
-            request.getSession().setAttribute("mensajeExitoGECA", "Estado del reclamo actualizado correctamente.");
+            String mensaje;
+            if (cambioEstado) {
+                mensaje = "Estado del reclamo actualizado a \"" + estadoCanonico + "\" correctamente.";
+            } else if (hayObservaciones) {
+                mensaje = "Las observaciones fueron registradas para el reclamo.";
+            } else {
+                mensaje = "El reclamo ya se encontraba en el estado \"" + estadoCanonico + "\".";
+            }
+            request.getSession().setAttribute("mensajeExitoGECA", mensaje);
         } else {
             request.getSession().setAttribute("mensajeErrorGECA", "No se pudo actualizar el estado del reclamo.");
         }
-        response.sendRedirect(request.getContextPath() + "/adminGECA");
+        response.sendRedirect(request.getContextPath() + "/adminGECA?accion=detalle&idReclamoGeca=" + idReclamo);
     }
 
     private void registrarSeguimientoGECA(HttpServletRequest request, HttpServletResponse response, clsUsuarioGeca administrador)
@@ -139,5 +170,21 @@ public class ControladorAdminServletGECA extends HttpServlet {
             return null;
         }
         return usuario;
+    }
+
+    private String normalizarEstadoGECA(String estado) {
+        if (estado == null) {
+            return null;
+        }
+        String candidato = estado.trim();
+        if (candidato.isEmpty()) {
+            return null;
+        }
+        for (String valido : ESTADOS_VALIDOS) {
+            if (valido.equalsIgnoreCase(candidato)) {
+                return valido;
+            }
+        }
+        return null;
     }
 }

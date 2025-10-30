@@ -58,6 +58,9 @@ public class clsReclamoDAOImplGECA implements CRUDReclamoGECA {
                     reclamos.add(mapearReclamoGECA(rs));
                 }
             }
+        
+        
+        
         } catch (SQLException e) {
             System.err.println("Error al listar reclamos por usuario: " + e.getMessage());
         }
@@ -149,6 +152,12 @@ public class clsReclamoDAOImplGECA implements CRUDReclamoGECA {
                 dato.setTotalGeca(rs.getLong("total"));
                 resumen.add(dato);
             }
+            
+            
+            
+            
+            
+            
         } catch (SQLException e) {
             System.err.println("Error al obtener resumen: " + e.getMessage());
         }

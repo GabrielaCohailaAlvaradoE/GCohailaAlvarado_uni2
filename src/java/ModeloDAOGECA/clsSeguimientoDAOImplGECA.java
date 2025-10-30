@@ -19,8 +19,7 @@ public class clsSeguimientoDAOImplGECA implements CRUDSeguimientoGECA {
     @Override
     public List<clsSeguimientoGECA> listarPorReclamoGECA(int idReclamo) {
         List<clsSeguimientoGECA> seguimientos = new ArrayList<>();
-        try (Connection con = clsConexionGECA.getConnectionGECA();
-                PreparedStatement ps = con.prepareStatement(SQL_LISTAR)) {
+        try (Connection con = clsConexionGECA.getConnectionGECA(); PreparedStatement ps = con.prepareStatement(SQL_LISTAR)) {
             ps.setInt(1, idReclamo);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -37,28 +36,66 @@ public class clsSeguimientoDAOImplGECA implements CRUDSeguimientoGECA {
 
     @Override
     public boolean registrarSeguimientoGECA(clsSeguimientoGECA seguimiento) {
-        try (Connection con = clsConexionGECA.getConnectionGECA();
-                PreparedStatement ps = con.prepareStatement(SQL_INSERTAR)) {
-            ps.setInt(1, seguimiento.getIdReclamoGeca());
-            ps.setInt(2, seguimiento.getIdUsuarioGeca());
-            ps.setString(3, seguimiento.getAccionGeca());
-            ps.setString(4, seguimiento.getObservacionesGeca());
-            ps.setString(5, seguimiento.getNuevoEstadoGeca());
-            return ps.executeUpdate() > 0;
+        try (Connection con = clsConexionGECA.getConnectionGECA()) {
+            if (con == null) {
+                return false;
+            }
+            return registrarSeguimiento(con, seguimiento);
         } catch (SQLException e) {
             System.err.println("Error al registrar seguimiento: " + e.getMessage());
             return false;
         }
     }
 
-    public void registrarCambioEstadoGECA(int idReclamo, int idUsuario, String nuevoEstado, String observaciones) {
+    public boolean registrarCambioEstadoGECA(Connection con, int idReclamo, int idUsuario, String nuevoEstado, String observaciones) throws SQLException {
+        clsSeguimientoGECA seguimiento = construirCambioEstado(idReclamo, idUsuario, nuevoEstado, observaciones);
+        return registrarSeguimiento(con, seguimiento);
+    }
+
+    public boolean registrarCambioEstadoGECA(int idReclamo, int idUsuario, String nuevoEstado, String observaciones) {
+        try (Connection con = clsConexionGECA.getConnectionGECA()) {
+            if (con == null) {
+                return false;
+            }
+            return registrarCambioEstadoGECA(con, idReclamo, idUsuario, nuevoEstado, observaciones);
+        } catch (SQLException e) {
+            System.err.println("Error al registrar cambio de estado: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean registrarSeguimiento(Connection con, clsSeguimientoGECA seguimiento) throws SQLException {
+        try (PreparedStatement ps = con.prepareStatement(SQL_INSERTAR)) {
+            ps.setInt(1, seguimiento.getIdReclamoGeca());
+            ps.setInt(2, seguimiento.getIdUsuarioGeca());
+            ps.setString(3, seguimiento.getAccionGeca());
+            ps.setString(4, seguimiento.getObservacionesGeca());
+            ps.setString(5, seguimiento.getNuevoEstadoGeca());
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    private clsSeguimientoGECA construirCambioEstado(int idReclamo, int idUsuario, String nuevoEstado, String observaciones) {
         clsSeguimientoGECA seguimiento = new clsSeguimientoGECA();
         seguimiento.setIdReclamoGeca(idReclamo);
         seguimiento.setIdUsuarioGeca(idUsuario);
         seguimiento.setAccionGeca("Cambio de estado");
-        seguimiento.setObservacionesGeca(observaciones);
+        seguimiento.setObservacionesGeca(limpiarObservacionesCambio(nuevoEstado, observaciones));
         seguimiento.setNuevoEstadoGeca(nuevoEstado);
-        registrarSeguimientoGECA(seguimiento);
+        return seguimiento;
+    }
+
+    private String limpiarObservacionesCambio(String nuevoEstado, String observaciones) {
+        if (observaciones != null) {
+            String texto = observaciones.trim();
+            if (!texto.isEmpty()) {
+                return texto;
+            }
+        }
+        if (nuevoEstado != null) {
+            return "Estado actualizado a: " + nuevoEstado;
+        }
+        return null;
     }
 
     private clsSeguimientoGECA mapearSeguimientoGECA(ResultSet rs) throws SQLException {
